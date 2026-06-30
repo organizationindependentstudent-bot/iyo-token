@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IYO Token Generator</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Mono:wght@700&family=Padauk:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root { --red: #d32f2f; --dark-red: #8e0000; --yellow: #fbc02d; --white: #ffffff; --bg: #f0f2f5; }
+        body { font-family: 'Padauk', sans-serif; padding: 20px; background-color: var(--bg); display: flex; justify-content: center; }
+        .main-container { width: 100%; max-width: 550px; background: var(--white); padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; font-weight: 700; margin-top: 0; margin-bottom: 25px; }
+        
+        .input-group { margin-bottom: 20px; padding: 20px; border: 1px solid #eee; border-radius: 10px; background: #fafafa; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: 'Padauk', sans-serif; transition: 0.3s;}
+        input:focus { outline: none; border-color: var(--red); }
+        
+        button { width: 100%; padding: 15px; background-color: var(--red); color: var(--white); border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; font-family: 'Padauk', sans-serif; transition: 0.3s; }
+        button:hover:not(:disabled) { background-color: var(--dark-red); transform: translateY(-2px); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        #downloadBtn { background-color: var(--yellow); color: #333; margin-top: 20px; display: none; }
+        #downloadBtn:hover { background-color: #f9a825; }
+
+        /* Toast Notification */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; font-size: 16px; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadeinToast 0.5s, fadeoutToast 0.5s 2.5s; }
+        @keyframes fadeinToast { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeoutToast { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        /* Token Card Style */
+        .token-wrapper { margin-top: 20px; display: none; justify-content: center; }
+        .token-card { width: 420px; height: 230px; background: linear-gradient(135deg, var(--red) 0%, var(--dark-red) 100%); border: 5px solid var(--yellow); border-radius: 16px; color: var(--white); position: relative; box-shadow: 0 15px 30px rgba(0,0,0,0.3); padding: 25px; box-sizing: border-box; overflow: hidden; }
+        .token-card::before { content: ''; position: absolute; top: -50px; right: -50px; width: 180px; height: 180px; background: rgba(251, 192, 45, 0.1); border-radius: 50%; }
+        
+        .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .token-header { font-family: 'Cinzel', serif; font-size: 26px; color: var(--yellow); margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); letter-spacing: 2px; }
+        .lucky-text { font-family: 'Padauk', sans-serif; font-size: 13px; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(251, 192, 45, 0.5); }
+        
+        .token-body { margin-top: 15px; text-align: left; }
+        .token-name { font-size: 22px; margin: 0; text-transform: uppercase; font-weight: bold; }
+        .token-number { font-family: 'Space Mono', monospace; font-size: 32px; margin: 5px 0 0 0; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .token-timestamp { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 8px; font-family: 'Space Mono', monospace; }
+        
+        .qr-container { position: absolute; bottom: 20px; right: 20px; width: 75px; height: 75px; background: var(--white); padding: 5px; border-radius: 8px; border: 2px solid var(--yellow); }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h2>IYO Token စနစ် (Cloud Sync)</h2>
+    
+    <div class="input-group">
+        <input type="text" id="userName" placeholder="အမည် ရိုက်ထည့်ပါ (ဥပမာ - အောင်အောင်)">
+        <button id="generateBtn" onclick="generateToken()">Token ထုတ်မည်</button>
+    </div>
+
+    <div class="token-wrapper" id="tokenWrapper">
+        <div class="token-card" id="iyoTokenCard">
+            <div class="header-row">
+                <h1 class="token-header">IYO TOKEN</h1>
+                <div class="lucky-text">ကံကောင်းပါစေ ✨</div>
+            </div>
+            <div class="token-body">
+                <p class="token-name" id="displayValName">Name</p>
+                <p class="token-number" id="displayTokenNumber">11111</p>
+                <p class="token-timestamp" id="displayTimestamp">Date: -</p>
+            </div>
+            <div class="qr-container" id="qrcode"></div>
+        </div>
+    </div>
+    
+    <button id="downloadBtn" onclick="downloadToken()">ပုံကို ဒေါင်းလုဒ်ဆွဲမည်</button>
+</div>
+
+<div id="toast">Message</div>
+
+<script>
+    // ⚠️ သတိပြုရန် - အောက်ပါ 'YOUR_WEB_APP_URL_HERE' နေရာတွင် သင်၏ Google Apps Script လင့်ခ်ကို ထည့်ပါ။
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTUaZ8e32-arcViFlxtAINmIaRpPxsjE4R-XtvE_EIN8burZcXL8uV3t7epbExuyXxyg/exechttps://script.google.com/macros/s/AKfycbwTUaZ8e32-arcViFlxtAINmIaRpPxsjE4R-XtvE_EIN8burZcXL8uV3t7epbExuyXxyg/exec';
+
+    let qrcode = new QRCode(document.getElementById("qrcode"), {
+        width: 75, height: 75, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L
+    });
+
+    function showToast(msg) {
+        let toast = document.getElementById("toast");
+        toast.innerText = msg;
+        toast.className = "show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    async function generateToken() {
+        let nameInput = document.getElementById('userName').value.trim();
+        if(nameInput === "") { showToast("ကျေးဇူးပြု၍ အမည်ရိုက်ထည့်ပါ။"); return; }
+        if(SCRIPT_URL === 'YOUR_WEB_APP_URL_HERE') { alert("Google Apps Script လင့်ခ် ထည့်ရန် ကျန်သေးသည်။ Code တွင် အရင်ထည့်ပါ။"); return; }
+
+        let btn = document.getElementById('generateBtn');
+        btn.disabled = true;
+        btn.innerText = "ချိတ်ဆက်နေပါသည်... အနည်းငယ်စောင့်ပါ";
+        document.getElementById('tokenWrapper').style.display = "none";
+        document.getElementById('downloadBtn').style.display = "none";
+
+        try {
+            // Google Sheet သို့ ဒေတာပို့ပြီး နံပါတ်အသစ် တောင်းခံခြင်း
+            let response = await fetch(`${SCRIPT_URL}?name=${encodeURIComponent(nameInput)}`);
+            let result = await response.json();
+
+            if(result.status === "success") {
+                let generatedNumber = result.ticketNumber;
+                
+                let now = new Date();
+                let dateString = now.toLocaleDateString('en-GB') + " " + now.toLocaleTimeString('en-US', {hour12: true});
+
+                // ကဒ်ပေါ်တွင် ပြသခြင်း
+                document.getElementById('displayValName').innerText = nameInput;
+                document.getElementById('displayTokenNumber').innerText = generatedNumber;
+                document.getElementById('displayTimestamp').innerText = "Issued: " + dateString;
+                
+                let securityData = `IYO-Token | Name: ${nameInput} | ID: ${generatedNumber} | Time: ${dateString} | Verified`;
+                qrcode.makeCode(securityData);
+
+                document.getElementById('tokenWrapper').style.display = "flex";
+                document.getElementById('downloadBtn').style.display = "block";
+                document.getElementById('userName').value = "";
+                showToast("Token အောင်မြင်စွာ ထုတ်ပေးပြီးပါပြီ");
+            } else {
+                showToast("ချို့ယွင်းချက်ဖြစ်ပေါ်နေပါသည်။ ပြန်လည်ကြိုးစားပါ။");
+            }
+        } catch (error) {
+            showToast("အင်တာနက် ကွန်နက်ရှင် စစ်ဆေးပေးပါ။");
+            console.error(error);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Token ထုတ်မည်";
+        }
+    }
+
+    function downloadToken() {
+        showToast("ပုံကို ဒေါင်းလုဒ်ဆွဲနေပါသည်...");
+        let tokenCard = document.getElementById('iyoTokenCard');
+        html2canvas(tokenCard, { scale: 3 }).then(canvas => {
+            let link = document.createElement('a');
+            let tNum = document.getElementById('displayTokenNumber').innerText;
+            link.download = 'IYO-Token-' + tNum + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast("ဒေါင်းလုဒ် ရယူပြီးပါပြီ!");
+        });
+    }
+</script>
+
+</body>
+</html>
