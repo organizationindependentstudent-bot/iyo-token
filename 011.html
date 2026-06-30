@@ -26,13 +26,11 @@
         #downloadBtn { background-color: var(--yellow); color: #333; margin-top: 20px; display: none; }
         #downloadBtn:hover { background-color: #f9a825; }
 
-        /* Toast Notification */
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; font-size: 16px; transform: translateX(-50%); }
         #toast.show { visibility: visible; animation: fadeinToast 0.5s, fadeoutToast 0.5s 2.5s; }
         @keyframes fadeinToast { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes fadeoutToast { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
 
-        /* Token Card Style */
         .token-wrapper { margin-top: 20px; display: none; justify-content: center; }
         .token-card { width: 420px; height: 230px; background: linear-gradient(135deg, var(--red) 0%, var(--dark-red) 100%); border: 5px solid var(--yellow); border-radius: 16px; color: var(--white); position: relative; box-shadow: 0 15px 30px rgba(0,0,0,0.3); padding: 25px; box-sizing: border-box; overflow: hidden; }
         .token-card::before { content: ''; position: absolute; top: -50px; right: -50px; width: 180px; height: 180px; background: rgba(251, 192, 45, 0.1); border-radius: 50%; }
@@ -80,7 +78,7 @@
 <div id="toast">Message</div>
 
 <script>
-    // ⚠️ သတိပြုရန် - အောက်ပါ 'YOUR_WEB_APP_URL_HERE' နေရာတွင် သင်၏ Google Apps Script လင့်ခ်ကို ထည့်ပါ။
+    // ⚠️ အောက်ပါ 'YOUR_WEB_APP_URL_HERE' နေရာတွင် URL အသစ် ထည့်ပါ။
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTUaZ8e32-arcViFlxtAINmIaRpPxsjE4R-XtvE_EIN8burZcXL8uV3t7epbExuyXxyg/exec';
 
     let qrcode = new QRCode(document.getElementById("qrcode"), {
@@ -91,13 +89,13 @@
         let toast = document.getElementById("toast");
         toast.innerText = msg;
         toast.className = "show";
-        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 4000);
     }
 
     async function generateToken() {
         let nameInput = document.getElementById('userName').value.trim();
         if(nameInput === "") { showToast("ကျေးဇူးပြု၍ အမည်ရိုက်ထည့်ပါ။"); return; }
-        if(SCRIPT_URL === 'YOUR_WEB_APP_URL_HERE') { alert("Google Apps Script လင့်ခ် ထည့်ရန် ကျန်သေးသည်။ Code တွင် အရင်ထည့်ပါ။"); return; }
+        if(SCRIPT_URL === 'YOUR_WEB_APP_URL_HERE') { alert("Google Apps Script လင့်ခ် ထည့်ရန် ကျန်သေးသည်။"); return; }
 
         let btn = document.getElementById('generateBtn');
         btn.disabled = true;
@@ -106,17 +104,26 @@
         document.getElementById('downloadBtn').style.display = "none";
 
         try {
-            // Google Sheet သို့ ဒေတာပို့ပြီး နံပါတ်အသစ် တောင်းခံခြင်း
+            // Fetch ဖြင့် လှမ်းချိတ်ခြင်း
             let response = await fetch(`${SCRIPT_URL}?name=${encodeURIComponent(nameInput)}`);
-            let result = await response.json();
+            let resultText = await response.text(); 
+            
+            let result;
+            try {
+                // ပြန်ရလာသော Data ကို JSON အဖြစ်ပြောင်းခြင်း
+                result = JSON.parse(resultText);
+            } catch (parseError) {
+                // Access မှားနေ၍ Login Page ပြန်ရောက်လာပါက ဤနေရာတွင် မိမည်
+                showToast("ချို့ယွင်းချက်: Google Script ၏ 'Who has access' ကို 'Anyone' သို့ ပြောင်းပေးပါ။");
+                console.error("Not JSON format:", resultText);
+                return;
+            }
 
             if(result.status === "success") {
                 let generatedNumber = result.ticketNumber;
-                
                 let now = new Date();
                 let dateString = now.toLocaleDateString('en-GB') + " " + now.toLocaleTimeString('en-US', {hour12: true});
 
-                // ကဒ်ပေါ်တွင် ပြသခြင်း
                 document.getElementById('displayValName').innerText = nameInput;
                 document.getElementById('displayTokenNumber').innerText = generatedNumber;
                 document.getElementById('displayTimestamp').innerText = "Issued: " + dateString;
@@ -129,11 +136,12 @@
                 document.getElementById('userName').value = "";
                 showToast("Token အောင်မြင်စွာ ထုတ်ပေးပြီးပါပြီ");
             } else {
-                showToast("ချို့ယွင်းချက်ဖြစ်ပေါ်နေပါသည်။ ပြန်လည်ကြိုးစားပါ။");
+                showToast("Error: " + result.message);
             }
         } catch (error) {
-            showToast("အင်တာနက် ကွန်နက်ရှင် စစ်ဆေးပေးပါ။");
-            console.error(error);
+            // လုံးဝ ချိတ်ဆက်မရသော အခြေအနေ
+            showToast("ချိတ်ဆက်မှု ပြတ်တောက်နေပါသည်။ URL အမှန်ဖြစ်ကြောင်း သေချာပါစေ။");
+            console.error("Network Error:", error);
         } finally {
             btn.disabled = false;
             btn.innerText = "Token ထုတ်မည်";
